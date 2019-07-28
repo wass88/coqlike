@@ -1,0 +1,10 @@
+ax Z (Z);
+th (Z);
+ap Z;
+qed;
+
+ax S (S ($1)) ($1);
+th (S (Z));
+ap S;
+ap Z;
+qed;

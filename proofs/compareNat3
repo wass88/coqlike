@@ -1,0 +1,7 @@
+ax L-Succ (ilt ($0) (S ($0)));
+ax L-SuccR (ilt ($1) (S ($2))) (ilt ($1) ($2));
+rs;
+
+th (ilt (S(S(Z))) (S(S(S(Z)))));
+  ap L-Succ;
+qed;

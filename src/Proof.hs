@@ -1,5 +1,6 @@
 module Proof where
 
+import Data.List
 import Control.Monad
 
 import Term
@@ -8,14 +9,27 @@ type Name = String
 data Rule = Rule Name [Term] Term
   deriving (Eq, Show, Read)
 
-readrule :: String -> Rule
-readrule = undefined
+readRule :: String -> Rule
+readRule = undefined
+
+nameOfRule (Rule name _ _) = name
+getRule [] name = Nothing
+getRule (r@(Rule n _ _):l) name | name == n = Just r
+                                | otherwise = getRule l name
 
 data Proof = 
     Goal Term
   | Der Rule [Proof] Term
-  deriving (Eq, Show, Read)
+  deriving (Eq, Read)
 
+instance Show Proof where
+  show = show_proof ""
+
+show_proof s (Goal t) = "\n" ++ s ++ "??? " ++ showTerm t ++ ""
+show_proof s (Der r ps t) =
+  "\n" ++ s ++ showTerm t ++ " by "++ nameOfRule r ++" {" ++
+  (intercalate ";" $ map (show_proof ("  "++s)) ps)
+  ++ "\n" ++ s ++ "}"
 
 {--
 Goal (1 + 2 is 3)
@@ -26,9 +40,18 @@ applyRule Piyo 0 ---> Der Hoge [Der Piyo [Goal (2 is 2)] (0 + 2 is 2)] (1 + 2 is
 startProof :: Term -> Proof
 startProof t = Goal t
 
+endProof :: Proof -> Bool
+endProof p = goalList p == []
+
 goalList :: Proof -> [Term]
 goalList (Goal t) = [t]
 goalList (Der _ ts _) = concatMap goalList ts
+
+apply :: Rule -> Proof -> Either String Proof
+apply r p = applyRule r (head $ goalList p) p
+
+applyWith :: Rule -> [(Int, Term)] -> Proof -> Either String Proof
+applyWith = undefined
 
 applyRule :: Rule -> Term -> Proof -> Either String Proof
 applyRule r k (Goal t) = if Goal k == Goal t
@@ -46,9 +69,10 @@ applyGoals (Rule name froms to) goal = do
 checkAssoc :: [(Int, Term)] -> Either String [(Int, Term)]
 checkAssoc [] = Right []
 checkAssoc ((i,t):l) =
-  let (s, l') = span (\(i1, t1) -> i1 == i) l in
+  let (l', s) = span (\(i1, t1) -> i1 == i) l in
   if all (\(_, t1) -> t == t1) l'
-  then checkAssoc l else Left ("Missmatch "++show i++": "++show t)
+  then fmap ((:)(i,t)) $ checkAssoc l
+  else Left ("Missmatch "++show i++": "++show t ++" over "++show l)
 
 termMatch :: Term -> Term -> Either String [(Int, Term)]
 termMatch t1 t2 = join $ fmap checkAssoc (termMatch_ t1 t2)
