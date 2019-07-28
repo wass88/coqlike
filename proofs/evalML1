@@ -1,0 +1,49 @@
+ax E-Int (evalto ($1) ($1));
+ax E-Bool (evalto ($1) ($1));
+ax E-IfT (evalto (ite ($1) ($2) ($3)) ($0))
+  (evalto ($1) (T)) (evalto ($2) ($0));
+ax E-IfF (evalto (ite ($1) ($2) ($3)) ($0))
+  (evalto ($1) (F)) (evalto ($3) ($0));
+
+ax E-Plus (evalto (+ ($1) ($2)) ($0))
+  (evalto ($1) ($3)) (evalto ($2) ($4))
+  (is (plus ($3) ($4)) ($0));
+ax E-Minus (evalto (- ($1) ($2)) ($0))
+  (evalto ($1) ($3)) (evalto ($2) ($4))
+  (is (minus ($3) ($4)) ($0));
+ax E-Times (evalto (* ($1) ($2)) ($0))
+  (evalto ($1) ($3)) (evalto ($2) ($4))
+  (is (times ($3) ($4)) ($0));
+ax E-Lt (evalto (< ($1) ($2)) ($0))
+  (evalto ($1) ($3)) (evalto ($2) ($4))
+  (is (lt ($3) ($4)) ($0));
+
+ax B-Plus (is (plus ($1) ($2)) ($3));
+ax B-Minus (is (minus ($1) ($2)) ($3));
+ax B-Times (is (times ($1) ($2)) ($3));
+ax B-Lt (is (lt ($1) ($2)) ($3));
+
+rs;
+
+th (evalto (+ (3) (5)) (8));
+  aw E-Plus 3:(3) 4:(5);
+    ap E-Int;
+    ap E-Int;
+    ap B-Plus;
+qed;
+
+th (evalto (- (- (8) (2)) (3)) (3));
+  aw E-Minus 3:(6) 4:(3);
+    aw E-Minus 3:(8) 4:(2);
+      ap E-Int; ap E-Int; ap B-Minus;
+    ap E-Int;
+    ap B-Minus;
+qed;
+
+th (evalto (* (+ (4) (5)) (- (1) (10))) (-81));
+  aw E-Times 3:(9) 4:(-9);
+    aw E-Plus 3:(4) 4:(5);
+      ap E-Int; ap E-Int; ap B-Plus;
+    aw E-Minus 3:(1) 4:(10);
+      ap E-Int; ap E-Int; ap B-Minus;
+    ap B-Times;

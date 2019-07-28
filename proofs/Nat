@@ -1,0 +1,15 @@
+ax P-Zero (is (plus (Z) ($1)) ($1));
+ax P-Succ (is (plus (S($1)) ($2)) (S($0)))
+  (is (plus ($1) ($2)) ($0));
+ax T-Zero (is (times (Z) ($1)) (Z));
+ax T-Succ (is (times (S($1)) ($2)) ($4))
+  (is (times ($1) ($2)) ($3)) 
+  (is (plus ($2) ($3)) ($4));
+
+th (is (times (S(S(Z))) (S(S(Z)))) (S(S(S(S(Z))))));
+nat;
+qed;
+
+th (is (times (S(S(Z))) (Z)) (Z));
+nat;
+qed;

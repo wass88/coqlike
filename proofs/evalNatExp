@@ -1,0 +1,60 @@
+ax P-Zero (is (plus (Z) ($1)) ($1));
+ax P-Succ (is (plus (S($1)) ($2)) (S($0)))
+  (is (plus ($1) ($2)) ($0));
+ax T-Zero (is (times (Z) ($1)) (Z));
+ax T-Succ (is (times (S($1)) ($2)) ($4))
+  (is (times ($1) ($2)) ($3)) 
+  (is (plus ($2) ($3)) ($4));
+
+
+ax E-Const (evalto ($0) ($0));
+ax E-Plus (evalto (+ ($1) ($2)) ($0))
+  (evalto ($1) ($3)) (evalto ($2) ($4))
+  (is (plus ($3) ($4)) ($0));
+ax E-Times (evalto (* ($1) ($2)) ($0))
+  (evalto ($1) ($3)) (evalto ($2) ($4))
+  (is (times ($3) ($4)) ($0));
+
+rs;
+th (evalto (+ (Z) (S(S(Z)))) (S(S(Z))));
+  aw E-Plus 3:(Z) 4:(S(S(Z)));
+  ap E-Const; ap E-Const;
+  ap P-Zero;
+qed;
+
+th (evalto (+ (S(S(Z))) (Z)) (S(S(Z))));
+  aw E-Plus 3:(S(S(Z))) 4:(Z);
+  ap E-Const; ap E-Const;
+  ap P-Succ; ap P-Succ; ap P-Zero; 
+qed;
+
+th (evalto (+ (+ (S(Z)) (S(Z))) (S(Z))) (S(S(S(Z)))));
+  aw E-Plus 3:(S(S(Z))) 4:(S(Z));
+    aw E-Plus 3:(S(Z)) 4:(S(Z));
+    ap E-Const; ap E-Const;
+    ap P-Succ; ap P-Zero;
+  ap P-Succ; ap P-Succ; ap P-Zero;
+qed;
+  
+th (evalto (+ (#3) (*(#2) (#1))) (#5));
+  aw E-Plus 3:(#3) 4:(#2);
+    ap E-Const;
+    aw E-Times 3:(#2) 4:(#1);
+      ap E-Const;
+      ap E-Const;
+      aw T-Succ 3:(#1);
+        aw T-Succ 3:(#0);
+          ap T-Zero; 
+          ap P-Succ; ap P-Zero;
+        ap P-Succ; ap P-Zero;
+      ap P-Succ; ap P-Succ; ap P-Succ; ap P-Zero;
+qed;
+
+th (evalto (* (+ (S(S(Z))) (S(S(Z)))) (Z)) (Z));
+  aw E-Times 3:(#4) 4:(#0);
+    aw E-Plus 3:(#2) 4:(#2);
+      ap E-Const;
+      ap E-Const;
+      nat;
+    ap E-Const;
+    nat;

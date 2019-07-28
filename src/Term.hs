@@ -2,6 +2,8 @@ module Term where
 
 import Text.Parsec
 import Control.Applicative ((<$>), (<*>))
+import Data.Char
+import Data.List
 
 type Token = String
 
@@ -11,14 +13,43 @@ data Term =
   deriving (Eq, Show, Read)
 
 showTerm (Var i) = "$" ++ show i
-showTerm (App n ts) = show_term n (map showTerm ts)
+showTerm (App n ts) = show_term n ts
   where
-  show_term "is" [t1,t2] = t1 ++ " is " ++ t2
-  show_term "plus" [t1,t2] = t1 ++ " plus " ++ t2
-  show_term "ilt" [t1,t2] = t1 ++ " is less than " ++ t2
-  show_term "S" [t] = "S(" ++ t ++ ")"
-  show_term "Z" [] = "Z"
-  show_term s t = error $ "On '"++s++show t++"'"
+  s = showTerm
+  show_term "is" [t1,t2] = s t1 ++ " is " ++s t2
+  show_term "plus" [t1,t2] = s t1 ++ " plus " ++s t2
+  show_term "minus" [t1,t2] = s t1 ++ " minus " ++ s t2
+  show_term "times" [t1,t2] = s t1 ++ " times " ++ s t2
+  show_term "lt" [t1,t2] = s t1 ++ " less than " ++ s t2
+  show_term "ilt" [t1,t2] = s t1 ++ " is less than " ++ s t2
+  show_term "evalto" [t1,t2] = s t1 ++ " evalto " ++ s t2
+  show_term "ite" [t1,t2,t3] = "if "++s t1++" then "++s t2++" else "++s t3
+  show_term "+" [t1,t2] = "(" ++ s t1 ++ " + " ++ s t2 ++ ")"
+  show_term "-" [t1,t2] = "(" ++ s t1 ++ " - " ++ s t2 ++ ")"
+  show_term "*" [t1,t2] = s t1 ++ " * " ++ s t2
+  show_term "<" [t1,t2] = s t1 ++ " < " ++ s t2
+  show_term "S" [t] = "S(" ++ s t ++ ")"
+  show_term "-->" [t1,t2] = s t1 ++ " ---> " ++ s t2
+  show_term "-*->" [t1,t2] = s t1 ++ " -*-> " ++ s t2
+  show_term "-d->" [t1,t2] = s t1 ++ " -d-> " ++ s t2
+  show_term "e=>" [t1,t2,t3] = show_env t1 ++ " |- " ++ s t2 ++ " evalto " ++ s t3
+  show_term "let" [t1,t2,t3] = "let "++s t1++" = "++s t2++" in "++s t3
+  show_term "T" [] = "true"
+  show_term "F" [] = "false"
+  show_term s [] = s
+  show_term s t = error $ "Print error: '"++s++show t++"'"
+
+  show_env (App "." []) = ""
+  show_env (App "@" [App "=" [App n [], v], l]) = show_env' l++n++"="++s v
+  show_env (App "@" [App "=" [Var i, v], l]) = show_env' l++show i++"="++s v
+  show_env (App "@" [Var i, l]) = show_env' l++"$"++show i
+  show_env (Var i) = "$" ++ show i
+  show_env' (App "." []) = ""
+  show_env' (App "@" [App "=" [App n [], v], l]) = show_env' l++n++"="++s v++","
+  show_env' (App "@" [App "=" [Var i, v], l]) = show_env' l++show i++"="++s v++","
+  show_env' (App "@" [Var i, l]) = show_env' l++"$"++show i++","
+  show_env' (Var i) = "$" ++ show i ++ ","
+  -- (@ (x 1) (@ (y 2) (.))) = x=1, y=2
 
 fromSTerm :: String -> Either String Term
 fromSTerm s = make $ tokenizer s ""
@@ -66,15 +97,30 @@ parseSterm = do
     spaces;
     string ")";
     return $ Var $ read n 
+  }) <|> (try $ do {
+    string "#";
+    n <- many1 digit;
+    spaces;
+    string ")";
+    return $ succnum $ read n
   }) <|> do {
     spaces;
-    n <- many1 alphaNum;
+    n <- many1 nonsp;
     spaces;
     m <- many parseSterm;
     spaces;
     string ")";
     return $ App n m;
   }
+  where
+    nonsp = satisfy (\c -> not (isSpace c || '(' == c || ')' == c))
+
+succnum :: Int -> Term
+succnum 0 = App "Z" []
+succnum n = App "S" [succnum (n-1)]
+numsucc :: Term -> Int
+numsucc (App "Z" []) = 0
+numsucc (App "S" [t]) = 1 + numsucc t
 
 parseTerm :: Parsec String () Term
 parseTerm =

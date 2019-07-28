@@ -47,6 +47,9 @@ goalList :: Proof -> [Term]
 goalList (Goal t) = [t]
 goalList (Der _ ts _) = concatMap goalList ts
 
+currentGoal :: Proof -> Maybe Term
+currentGoal p = case goalList p of [] -> Nothing; h:_ -> Just h
+
 apply :: Rule -> Proof -> Either String Proof
 apply r = applyWith r []
 
@@ -96,3 +99,15 @@ replaceTerm (it:l) t =
     conv :: (Int, Term) -> Term -> Term
     conv (i, t1) (Var j) = (if i == j then t1 else Var j)
     conv it (App name ts) = App name (map (conv it) ts)
+
+type TacTic = Term -> Maybe (Rule, [(Int, Term)])
+applyTactic :: TacTic -> Proof -> Either String Proof
+applyTactic tt p = 
+  case currentGoal p of
+    Nothing -> Right p
+    Just g ->
+      case tt g of 
+        Nothing -> Right p
+        Just (rule, b) -> do
+          p <- applyWith rule b p 
+          applyTactic tt p

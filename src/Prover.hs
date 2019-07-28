@@ -1,6 +1,7 @@
 module Prover where
   import Proof
   import Term as T
+  import Nat as Nat
   import Control.Monad.State as S
   import Text.Parsec
   import Control.Applicative ((<$>), (<*>))
@@ -37,7 +38,8 @@ module Prover where
     Axiom Rule |
     Theorem T.Term |
     Apply String |
-    ApplyWith String [(Int, T.Term)]|
+    ApplyWith String [(Int, T.Term)] |
+    Nat |
     Qed |
     ShowRules
     deriving (Eq, Show)
@@ -88,7 +90,11 @@ module Prover where
         }) <|> (try $ do {
           spaces; string "rs"; spaces;
           return $ ShowRules
+        }) <|> (try $ do {
+          spaces; string "nat"; spaces;
+          return $ Nat
         })
+
 
   step :: Cmd -> S.State ProofState (Maybe String)
   step (Axiom rule) = do
@@ -103,27 +109,17 @@ module Prover where
         return Nothing
       _ -> return $ Just "has proof"
   step (Apply name) = do
-    s <- get
-    case proof s of
-      Nothing -> return $ Just "no proof"
-      Just f -> do
-        case getRule (axiom s) name of
-          Just rule ->
-            case apply rule f of
-              Right f -> do put $ s {proof = Just f}; return $ Nothing
-              Left s -> return $ Just s
-          Nothing -> return $ Just "missing rule"
+    rule <- getRuleM name
+    case rule of
+      Nothing -> return $ Just "missing Rule"
+      Just rule -> touchProof (apply rule)
   step (ApplyWith name bs) = do
-    s <- get
-    case proof s of
-      Nothing -> return $ Just "no proof"
-      Just f -> do
-        case getRule (axiom s) name of
-          Just rule ->
-            case applyWith rule bs f of
-              Right f -> do put $ s {proof = Just f}; return $ Nothing
-              Left s -> return $ Just s
-          Nothing -> return $ Just "missing rule"
+    rule <- getRuleM name
+    case rule of
+      Nothing -> return $ Just "missing Rule"
+      Just rule -> touchProof (applyWith rule bs)
+  step (Nat) = do
+    touchProof Nat.natProve
   step Qed = do
     s <- get
     case proof s of
@@ -134,8 +130,25 @@ module Prover where
   step ShowRules = do
     s <- get
     return $ Just (
-      intercalate "\n" (map (\(Rule n ts t) ->
-        n ++ ":\n" ++ (intercalate "\n  ") (map showTerm ts) ++
-        "\n->" ++ showTerm t
+      intercalate "\n\n" (map (\(Rule n ts t) ->
+        n ++ ":\n  " ++ (intercalate "\n  ") (map showTerm ts) ++
+        "\n  ->" ++ showTerm t
         ) $ axiom s)
       )
+      
+  touchProof :: (Proof -> Either String Proof) -> S.State ProofState (Maybe String)
+  touchProof fn = do
+    s <- get
+    case proof s of
+      Nothing -> return $ Just "no proof"
+      Just f -> do
+        case fn f of
+          Right f -> do put $ s {proof = Just f}; return $ Nothing
+          Left s -> return $ Just s
+
+  getRuleM :: String -> S.State ProofState (Maybe Rule)
+  getRuleM name = do
+    s <- get
+    case getRule (axiom s) name of
+      Just rule -> return $ Just rule
+      Nothing -> return $ Nothing
