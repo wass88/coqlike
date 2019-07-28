@@ -1,0 +1,114 @@
+ax E-Int (d=> ($9) ($1) ($1));
+ax E-Bool (d=> ($9) ($1) ($1));
+ax E-Var (d=> ($9) (& ($1)) ($2));
+
+ax E-IfT (d=> ($9) (ite ($1) ($2) ($3)) ($0))
+  (d=> ($9) ($1) (T)) (d=> ($9) ($2) ($0));
+ax E-IfF (d=> ($9) (ite ($1) ($2) ($3)) ($0))
+  (d=> ($9) ($1) (F)) (d=> ($9) ($3) ($0));
+
+ax E-Plus (d=> ($9) (+ ($1) ($2)) ($0))
+  (d=> ($9) ($1) ($3)) (d=> ($9) ($2) ($4))
+  (is (plus ($3) ($4)) ($0));
+ax E-Minus (d=> ($9) (- ($1) ($2)) ($0))
+  (d=> ($9) ($1) ($3)) (d=> ($9) ($2) ($4))
+  (is (minus ($3) ($4)) ($0));
+ax E-Times (d=> ($9) (* ($1) ($2)) ($0))
+  (d=> ($9) ($1) ($3)) (d=> ($9) ($2) ($4))
+  (is (times ($3) ($4)) ($0));
+ax E-Lt (d=> ($9) (< ($1) ($2)) ($0))
+  (d=> ($9) ($1) ($3)) (d=> ($9) ($2) ($4))
+  (is (lt ($3) ($4)) ($0));
+
+ax B-Plus (is (plus ($1) ($2)) ($3));
+ax B-Minus (is (minus ($1) ($2)) ($3));
+ax B-Times (is (times ($1) ($2)) ($3));
+ax B-Lt (is (lt ($1) ($2)) ($3));
+
+ax E-Let (d=> ($9) (dlet ($2) ($3)) ($0))
+  (d=> ($9) ($2) ($4)) (d=> (@ ($4) ($9)) ($3) ($0));
+ax E-Fun (d=> ($9) (dfun ($2)) (dvfun ($9) ($2)));
+ax E-App (d=> ($9) (. ($1) ($2)) ($0))
+  (d=> ($9) ($1) (dvfun ($8) ($4)))
+  (d=> ($9) ($2) ($5))
+  (d=> (@ ($5) ($8)) ($4) ($0));
+
+rs;
+
+th (d=> (@ (4) (@ (T) (.)))
+        (ite (& (2)) (+ (& (1)) (1)) (- (& (1)) (1)))
+        (5));
+  ap E-IfT;
+    ap E-Var;
+  aw E-Plus 3:(4) 4:(1);
+    ap E-Var;
+    ap E-Int;
+    ap B-Plus;
+qed;
+
+th (d=> (.)
+  (dlet (* (3) (3)) (dlet (* (4) (& (1))) (+ (&(2)) (&(1)))))
+  (45));
+  aw E-Let 4:(9);
+    aw E-Times 3:(3) 4:(3); ap E-Int; ap E-Int; ap B-Times;
+  aw E-Let 4:(36);
+    aw E-Times 3:(4) 4:(9); ap E-Int; ap E-Var; ap B-Times;
+  aw E-Plus 3:(9) 4:(36); ap E-Var; ap E-Var; ap B-Plus;
+qed;
+
+th (d=> (@ (3) (.))
+        (dlet (* (&(1)) (2)) (+ (&(1)) (&(1)))) (12));
+  aw E-Let 4:(6);
+    aw E-Times 3:(3) 4:(2); ap E-Var; ap E-Int; ap B-Times;
+  aw E-Plus 3:(6) 4:(6); ap E-Var; ap E-Var; ap B-Plus;
+qed;
+
+th (d=> (.)
+(dlet (dlet (- (3) (2)) (* (&(1)) (&(1)))) (dlet (4) (+ (&(2)) (&(1)))))
+(5));
+  aw E-Let 4:(1);
+    aw E-Let 4:(1);
+      aw E-Minus 3:(3) 4:(2); ap E-Int; ap E-Int; ap B-Minus;
+    aw E-Times 3:(1) 4:(1); ap E-Var; ap E-Var; ap B-Times;
+  aw E-Let 4:(4);
+    ap E-Int;
+  aw E-Plus 3:(1) 4:(4); ap E-Var; ap E-Var; ap B-Plus;
+qed;
+
+th (d=> (.)
+(dlet (dfun (+ (. (&(1)) (3)) (. (&(1)) (4))))
+  (. (&(1)) (dfun (* (&(1)) (&(1))))))
+(25));
+  aw E-Let 4:(dvfun (.) (+ (. (&(1)) (3)) (. (&(1)) (4))));
+    ap E-Fun;
+    aw E-App 4:(+ (. (&(1)) (3)) (. (&(1)) (4))) 8:(.)
+             5:(dvfun (@ (dvfun (.) (+ (. (&(1)) (3)) (. (&(1)) (4)))) (.))
+                      (* (&(1)) (&(1))));
+      ap E-Var;
+      ap E-Fun;
+      aw E-Plus 3:(9) 4:(16);
+        aw E-App 
+        8:(@ (dvfun (.) (+ (. (&(1)) (3)) (. (&(1)) (4)))) (.))
+        5:(3) 4:(* (&(1)) (&(1)));
+          ap E-Var;
+          ap E-Int;
+          aw E-Times 3:(3) 4:(3); ap E-Var; ap E-Var; ap B-Times;
+        aw E-App 
+        8:(@ (dvfun (.) (+ (. (&(1)) (3)) (. (&(1)) (4)))) (.))
+        5:(4) 4:(* (&(1)) (&(1)));
+          ap E-Var;
+          ap E-Int;
+          aw E-Times 3:(4) 4:(4); ap E-Var; ap E-Var; ap B-Times;
+    aw B-Plus;
+qed;
+        
+th (d=> (.) (dlet (3) (dlet (dfun (* (&(1)) (&(2)))) (dlet (5) (. (&(2)) (4))))) (12));
+  aw E-Let 4:(3);
+    aw E-Int;
+  aw E-Let 4:(dvfun (@(3) (.)) (* (&(1)) (&(2))));
+    aw E-Fun;
+  aw E-Let 4:(5);
+    aw E-Int;
+  aw E-App 8:(@(3) (.)) 4:(* (&(1)) (&(2))) 5:(4);
+    aw E-Var; aw E-Int;
+  aw E-Times 3:(4) 4:(3); aw E-Var; aw E-Var; aw B-Times;

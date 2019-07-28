@@ -34,6 +34,22 @@ showTerm (App n ts) = show_term n ts
   show_term "-d->" [t1,t2] = s t1 ++ " -d-> " ++ s t2
   show_term "e=>" [t1,t2,t3] = show_env t1 ++ " |- " ++ s t2 ++ " evalto " ++ s t3
   show_term "let" [t1,t2,t3] = "let "++s t1++" = "++s t2++" in "++s t3
+  show_term "vfun" [t1,t2,t3] = "("++show_env t1++")[fun "++s t2++"->"++s t3++"]"
+  show_term "vrec" [t1,t2,t3,t4] = "("++show_env t1++")[rec "++s t2++"= fun "++s t3++"->"++s t4++"]"
+  show_term "fun" [t1,t2] = "(fun "++s t1++"->"++s t2++")"
+  show_term "." [t1,t2] = "("++s t1++" "++s t2++")"
+  show_term "letrec" [t1,t2,t3,t4] = "(let rec"++s t1++"=fun "++s t2++"->"++s t3++" in "++s t4++")"
+
+  show_term "d->" [t1,t2,t3] = show_vars t1 ++ " |- " ++ s t2 ++ " evalto " ++ s t3
+  show_term "d=>" [t1,t2,t3] = show_db t1 ++ " |- " ++ s t2 ++ " evalto " ++ s t3
+  show_term "dlet" [t2,t3] = "let . = "++s t2++" in "++s t3
+  show_term "dvfun" [t1,t3] = "("++show_db t1 ++")[fun . -> "++s t3++"]"
+  show_term "dvrec" [t1,t4] = "("++show_db t1++")[rec . =fun . -> "++s t4++"]"
+  show_term "dfun" [t2] = "(fun . -> "++s t2++")"
+  show_term "dletrec" [t3,t4] = "(let rec . = sfun . -> "++s t3++" in "++s t4++")"
+  show_term "&" [App t []] = "#" ++ t
+  show_term "&" [Var i] = "#$" ++ show i
+
   show_term "T" [] = "true"
   show_term "F" [] = "false"
   show_term s [] = s
@@ -41,15 +57,21 @@ showTerm (App n ts) = show_term n ts
 
   show_env (App "." []) = ""
   show_env (App "@" [App "=" [App n [], v], l]) = show_env' l++n++"="++s v
-  show_env (App "@" [App "=" [Var i, v], l]) = show_env' l++show i++"="++s v
+  show_env (App "@" [App "=" [Var i, v], l]) = show_env' l++"$"++show i++"="++s v
   show_env (App "@" [Var i, l]) = show_env' l++"$"++show i
   show_env (Var i) = "$" ++ show i
-  show_env' (App "." []) = ""
-  show_env' (App "@" [App "=" [App n [], v], l]) = show_env' l++n++"="++s v++","
-  show_env' (App "@" [App "=" [Var i, v], l]) = show_env' l++show i++"="++s v++","
-  show_env' (App "@" [Var i, l]) = show_env' l++"$"++show i++","
-  show_env' (Var i) = "$" ++ show i ++ ","
-  -- (@ (x 1) (@ (y 2) (.))) = x=1, y=2
+  show_env' s = case show_env s of "" -> ""; s -> s ++ ","
+
+  show_vars (App "." []) = ""
+  show_vars (Var i) = "$" ++ show i
+  show_vars (App "@" [App t [], l]) = show_vars' l ++ t
+  show_vars (App "@" [Var i, l]) = show_vars' l++"$"++show i
+  show_vars' s = case show_vars s of "" -> ""; s -> s ++ ","
+
+  show_db (App "." []) = ""
+  show_db (Var i) = "$" ++ show i
+  show_db (App "@" [t, l]) = show_db' l ++ s t
+  show_db' s = case show_db s of "" -> ""; s -> s ++ ","
 
 fromSTerm :: String -> Either String Term
 fromSTerm s = make $ tokenizer s ""

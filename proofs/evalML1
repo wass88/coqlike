@@ -47,3 +47,22 @@ th (evalto (* (+ (4) (5)) (- (1) (10))) (-81));
     aw E-Minus 3:(1) 4:(10);
       ap E-Int; ap E-Int; ap B-Minus;
     ap B-Times;
+qed;
+
+th (evalto (ite (< (4) (5)) (+ (2) (3)) (* (8) (8))) (5));
+  aw E-IfT;
+    aw E-Lt 3:(4) 4:(5); aw E-Int; aw E-Int; aw B-Lt;
+  aw E-Plus 3:(2) 4:(3); aw E-Int; aw E-Int; aw B-Plus;
+qed;
+
+th (evalto (+ (3) (ite (< (-23) (* (-2) (8))) (8) (+ (2) (4)))) (11));
+  aw E-Plus 3:(3) 4:(8);
+    aw E-Int;
+    aw E-IfT;
+      aw E-Lt 3:(-23) 4:(-16);
+        aw E-Int;
+        aw E-Times 3:(-2) 4:(8);
+          aw E-Int; aw E-Int; aw B-Times;
+        aw B-Lt;
+      aw E-Int;
+    aw B-Plus;

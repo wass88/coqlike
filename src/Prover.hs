@@ -76,7 +76,7 @@ module Prover where
         }) <|> (try $ do {
           spaces; string "aw"; spaces;
           n <- many1 nonsp; spaces;
-          b <- many1 $ (do {
+          b <- many $ (do {
             n <- many1 digit;
             string ":";
             t <- parseSterm;
