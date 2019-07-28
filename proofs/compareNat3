@@ -5,3 +5,9 @@ rs;
 th (ilt (S(S(Z))) (S(S(S(Z)))));
   ap L-Succ;
 qed;
+
+th (ilt (S(S(Z))) (S(S(S(S(S(Z)))))));
+  ap L-SuccR;
+  ap L-SuccR;
+  ap L-Succ;
+qed;

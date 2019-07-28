@@ -48,22 +48,25 @@ goalList (Goal t) = [t]
 goalList (Der _ ts _) = concatMap goalList ts
 
 apply :: Rule -> Proof -> Either String Proof
-apply r p = applyRule r (head $ goalList p) p
+apply r = applyWith r []
 
 applyWith :: Rule -> [(Int, Term)] -> Proof -> Either String Proof
-applyWith = undefined
+applyWith r b p = applyRuleWith r b (head $ goalList p) p
 
-applyRule :: Rule -> Term -> Proof -> Either String Proof
-applyRule r k (Goal t) = if Goal k == Goal t
-  then do goals <- applyGoals r t; return $ Der r goals t
+applyRuleWith :: Rule -> [(Int, Term)] -> Term -> Proof -> Either String Proof
+applyRuleWith r b k (Goal t) = if Goal k == Goal t
+  then do goals <- applyGoals r b t; return $ Der r goals t
   else return $ Goal t
-applyRule r k (Der rule proofs term) = do
-  proofs <- sequence $ fmap (applyRule r k) proofs
+applyRuleWith r b k (Der rule proofs term) = do
+  proofs <- sequence $ fmap (applyRuleWith r b k) proofs
   return $ Der rule proofs term
 
-applyGoals :: Rule -> Term -> Either String [Proof] 
-applyGoals (Rule name froms to) goal = do
-  mp <- termMatch to goal
+applyRule :: Rule -> Term -> Proof -> Either String Proof
+applyRule r = applyRuleWith r []
+
+applyGoals :: Rule -> [(Int, Term)] -> Term -> Either String [Proof] 
+applyGoals (Rule name froms to) b goal = do
+  mp <- termMatch b to goal
   return $ map (\c -> Goal (replaceTerm mp c)) froms
 
 checkAssoc :: [(Int, Term)] -> Either String [(Int, Term)]
@@ -74,8 +77,8 @@ checkAssoc ((i,t):l) =
   then fmap ((:)(i,t)) $ checkAssoc l
   else Left ("Missmatch "++show i++": "++show t ++" over "++show l)
 
-termMatch :: Term -> Term -> Either String [(Int, Term)]
-termMatch t1 t2 = join $ fmap checkAssoc (termMatch_ t1 t2)
+termMatch :: [(Int, Term)] -> Term -> Term -> Either String [(Int, Term)]
+termMatch b t1 t2 = join $ fmap checkAssoc ((fmap (b ++)) (termMatch_ t1 t2))
   where
   termMatch_ :: Term -> Term -> Either String [(Int, Term)]
   termMatch_ (App name1 ts1) (App name2 ts2)

@@ -6,6 +6,10 @@ th (ilt (S(S(Z))) (S(S(S(Z)))));
   ap L-Succ;
 qed;
 
-th (ilt S(S(Z)) S(S(S(S(S(Z))))));
-  ap L-Trans;
+th (ilt (S(S(Z))) (S(S(S(S(S(Z)))))));
+  aw L-Trans 2:(S(S(S(Z))));
+  ap L-Succ;
+  aw L-Trans 2:(S(S(S(S(Z)))));
+  ap L-Succ;
+  ap L-Succ;
 qed;

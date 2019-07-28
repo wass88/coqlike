@@ -20,10 +20,10 @@ module Prover where
   proverST = do
     ls <- lift getContents
     forM_ (splitOn ";" ls) (\l -> do
+      lift $ do{putStr "<<< "; print l; putStr "\n"}
       case readCmd l of
         Left err -> lift $ print err
         Right c -> do 
-          lift $ do{putStr "<"; print c; putStr "\n"}
           err <- liftS $ step c 
           case err of
             Just err -> lift $ putStrLn err
@@ -72,6 +72,17 @@ module Prover where
           n <- many1 nonsp; spaces;
           return $ Apply n
         }) <|> (try $ do {
+          spaces; string "aw"; spaces;
+          n <- many1 nonsp; spaces;
+          b <- many1 $ (do {
+            n <- many1 digit;
+            string ":";
+            t <- parseSterm;
+            spaces;
+            return (read n, t)
+          });
+          return $ ApplyWith n b
+        }) <|> (try $ do {
           spaces; string "qed"; spaces;
           return $ Qed
         }) <|> (try $ do {
@@ -99,6 +110,17 @@ module Prover where
         case getRule (axiom s) name of
           Just rule ->
             case apply rule f of
+              Right f -> do put $ s {proof = Just f}; return $ Nothing
+              Left s -> return $ Just s
+          Nothing -> return $ Just "missing rule"
+  step (ApplyWith name bs) = do
+    s <- get
+    case proof s of
+      Nothing -> return $ Just "no proof"
+      Just f -> do
+        case getRule (axiom s) name of
+          Just rule ->
+            case applyWith rule bs f of
               Right f -> do put $ s {proof = Just f}; return $ Nothing
               Left s -> return $ Just s
           Nothing -> return $ Just "missing rule"
